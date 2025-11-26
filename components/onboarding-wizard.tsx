@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ChevronRight, ChevronLeft, CheckCircle2 } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, addDoc } from "firebase/firestore"
 
 type FormData = {
   // Step 1: Personal Information
@@ -31,6 +33,7 @@ type FormData = {
 
 export default function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -62,9 +65,52 @@ export default function OnboardingWizard() {
     }
   }
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData)
-    setCurrentStep(5) // Success state
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    console.log("Starting form submission...")
+    console.log("Form data:", formData)
+    
+    try {
+      // Save to Firestore in form-submission collection
+      console.log("Attempting to write to Firestore...")
+      const submissionData = {
+        // Personal Information
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        
+        // Company Details
+        companyName: formData.companyName,
+        companySize: formData.companySize,
+        role: formData.role,
+        
+        // Use Case
+        useCase: formData.useCase,
+        primaryGoal: formData.primaryGoal,
+        
+        // Preferences
+        newsletter: formData.newsletter,
+        emailUpdates: formData.emailUpdates,
+        
+        // Metadata
+        createdAt: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
+      }
+      
+      const docRef = await addDoc(collection(db, "form-submission"), submissionData)
+      console.log("✅ Document written successfully with ID:", docRef.id)
+      console.log("📄 Collection: form-submission")
+      console.log("📋 Document ID:", docRef.id)
+      alert(`Success! Your data has been saved.\n\nCollection: form-submission\nDocument ID: ${docRef.id}`)
+      setCurrentStep(5) // Success state
+    } catch (error: any) {
+      console.error("❌ Error adding document:", error)
+      console.error("Error code:", error.code)
+      console.error("Error message:", error.message)
+      alert(`Error submitting form: ${error.message}\n\nCheck the browser console for more details.`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const toggleUseCase = (value: string) => {
@@ -416,7 +462,9 @@ export default function OnboardingWizard() {
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={!isStepValid()}>Complete Setup</Button>
+                <Button onClick={handleSubmit} disabled={!isStepValid() || isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Complete Setup"}
+                </Button>
               )}
             </div>
           )}

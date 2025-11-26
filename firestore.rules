@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow anyone to write to the form-submission collection
+    // TODO: Add authentication and restrict access in production
+    match /form-submission/{document} {
+      allow write: if true;
+      allow read: if true;
+    }
+    
+    // Allow anyone to write to the onboarding collection (legacy)
+    match /onboarding/{document} {
+      allow write: if true;
+      allow read: if true;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
